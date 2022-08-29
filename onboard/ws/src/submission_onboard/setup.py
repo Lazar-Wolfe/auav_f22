@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'detector_node = submission_onboard.TrajectoryBezier_publisher:main',
+            'bezier_try = submission_onboard.TrajectoryBezier_publisher:main',
+            'setpoint_try = submission_onboard.TrajectorySetPoint_publisher:main'
         ],
     },
 )
