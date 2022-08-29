@@ -20,7 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'detector_node = submission_onboard.TrajectoryBezier_publisher:main',
+            'traj_node = submission_onboard.TrajectoryBezier_publisher:main',
+            'transformation_node = submission_onboard.get3dcoord:main',
+            'detector_node = submission_onboard.redros:main',
         ],
     },
 )
