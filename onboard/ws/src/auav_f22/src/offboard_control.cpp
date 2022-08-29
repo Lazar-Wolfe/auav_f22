@@ -165,8 +165,8 @@ void OffboardControl::publish_trajectory_setpoint() const {
 	msg.timestamp = timestamp_.load();
 	msg.x = 0.0;
 	msg.y = 0.0;
-	msg.z = -5.0;
-	msg.yaw = -3.14; // [-PI:PI]
+	msg.z = -1.0;
+	msg.yaw = 0.0; // [-PI:PI]
 
 	trajectory_setpoint_publisher_->publish(msg);
 }
