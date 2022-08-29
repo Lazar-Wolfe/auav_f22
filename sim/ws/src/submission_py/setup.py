@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'detector_node = submission_py.redros:main',
+            'transformation_node = submission_py.get3dcoord:main'
         ],
     },
 )
