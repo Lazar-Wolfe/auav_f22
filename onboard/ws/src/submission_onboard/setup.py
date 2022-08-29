@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'setpoint_try = submission_onboard.TrajectorySetPoint_publisher:main'
+            'car_fake = submission_onboard.Sample_traj_car:main'
             'transformation_node = submission_onboard.get3dcoord:main',
             'detector_node = submission_onboard.redros:main',
         ],
