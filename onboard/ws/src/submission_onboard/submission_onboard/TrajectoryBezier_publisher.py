@@ -20,7 +20,7 @@ class DetectorNode(Node):
         self.z_drone = 0
 
     def traj_publisher(self):
-        delta_x = X_car-self.x_drone 
+        delta_x = X_car-self.x_drone
         delta_y = Y_car-self.y_drone
         dist = math.sqrt(delta_x**2+delta_y**2) 
         # x_des = self.x_drone*delta_x/dist 
