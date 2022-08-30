@@ -110,9 +110,9 @@ class TransformationNode(Node):
             transform_mat=mat
             transform_mat[:3,3]=[self.x_drone,self.y_drone,self.z_drone]
             new_vec_p = np.vstack((new_vec, np.ones(new_vec.shape[1])))
-            transform_mat_c_d = np.array([[-1., 0., 0., 0.09],
-                                            [0.,-1., 0., 0.],
-                                            [0., 0., -1., -0.01],
+            transform_mat_c_d = np.array([[0., 0., -1., 0.09],
+                                            [-1.,0., 0., 0.],
+                                            [0., 1., 0., -0.08],
                                             [0., 0., 0., 1.]])
             coord = np.matmul(transform_mat_c_d, new_vec_p)
             coord=np.matmul(transform_mat, coord)

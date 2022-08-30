@@ -4,9 +4,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from sensor_msgs.msg import Image, CameraInfo
 import cv2, numpy as np
-import matplotlib.pyplot as plt
 from cv_bridge import CvBridge,CvBridgeError
-# import tf
 import geometry_msgs
 from geometry_msgs.msg import Pose
 # import tf.transformations

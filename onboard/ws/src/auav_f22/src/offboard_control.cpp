@@ -89,7 +89,7 @@ public:
 
             		// offboard_control_mode needs to be paired with trajectory_setpoint
 			publish_offboard_control_mode();
-			// publish_trajectory_setpoint();
+			publish_trajectory_setpoint();
 
            		 // stop the counter after reaching 11
 			if (offboard_setpoint_counter_ < 11) {
