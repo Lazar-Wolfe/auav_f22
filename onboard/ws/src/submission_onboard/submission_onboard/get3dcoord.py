@@ -11,18 +11,22 @@ from cv_bridge import CvBridge,CvBridgeError
 from geometry_msgs.msg import Pose
 from px4_msgs.msg import VehicleLocalPosition,VehicleAttitude
 
+# from sensor_msgs.msg import PointCloud2
+# from scipy.spatial.transform import Rotation as R
+# import tf2_ros
+# import tf2_geometry_msgs
+
 class TransformationNode(Node):
     def __init__(self):
         super().__init__('transformation_node')
-        # self.publisher_ = self.create_publisher(Pose,'car3dcoord',10)
-        # timer_period = 0.1
-        # self.timer = self.create_timer(timer_period,self.publisher_function)
+        self.publisher_ = self.create_publisher(Pose,'car3dcoord',10)
+        timer_period = 0.1
+        self.timer = self.create_timer(timer_period,self.publisher_function)
         self.br = CvBridge()
         self.imagex = None
         self.imagey = None
         self.coord3dx = None
         self.coord3dy = None
-        self.coord3dz = None
         self.rgbimage = None
         self.x_drone = 0
         self.y_drone = 0
@@ -31,7 +35,7 @@ class TransformationNode(Node):
         self.orientationy = 0
         self.orientationz = 0
         self.orientationw = 0
-        self.depth_image = None
+        self.depthimage = None
         self.subscription = self.create_subscription(Pose, '/detector_topic',self.coord_callback,10)
         self.subscription = self.create_subscription(Image,'/rgbd_camera/depth_image',self.depthimage_callback,10)
         self.subscription = self.create_subscription(VehicleLocalPosition,'/VehicleLocalPosition_PubSubTopic',self.drone_odom_callback,10)
@@ -64,64 +68,60 @@ class TransformationNode(Node):
             cv_depth = self.br.imgmsg_to_cv2(data, "passthrough")
         except CvBridgeError as e:
             print(e)
-        header_depthimage = data.header
         self.depthimage = cv_depth
         self.projection()
-        
+    def publisher_function(self):
+        if self.coord3dx is not None and self.coord3dy is not None:
+            msg = Pose()
+            msg.position.x = float(self.coord3dx)
+            msg.position.y = float(self.coord3dy)
+            msg.position.z = float(0)
+            self.publisher_.publish(msg)
+            self.get_logger().info("Published car world coordinates")
+            self.coord3dx = self.coord3dy = None
+
     def projection(self):
         if self.imagex == -999 or self.imagey == -999:
             return
         if self.x_drone is not None and self.depthimage is not None and self.imagex is not None and self.imagey is not None and self.rgbimage is not None:
             cx = int(self.imagex)
             cy = int(self.imagey)
-            img = self.depthimage
-            #TODO: get drone pose
-
-            # cx = cx.reshape(-1)
-            # cy = cy.reshape(-1)
-            # mask = cx<480
-            # mask=mask&(cx>=0)
-            # mask=mask&(cy<640)
-            # mask=mask&(cy>=0)
-            # cx = cx[mask]
-            # cy = cy[mask]
-
-            cx=np.int32(cx)
-            cy=np.int32(cy)
-
-            X = np.vstack((cx,cy,np.ones(1)))
-            #TODO: get K from camera_info
-            # k_int = np.array([[]])
-            k_int = np.array([[465.60148469763925, 0.0, 320.5],
-                                [0.0, 465.60148469763925, 240.5],
-                                [0.0, 0.0, 1.0]])
-            X=np.matmul(np.linalg.inv(k_int),X)
-            
-            unit_vec=X/np.linalg.norm(X,axis=0)
-            #TODO: depth wrong
-            dep=img[cx,cy]
-            print("Depth",dep)
-            cv2.circle(self.rgbimage,(cx,cy),5,(0,255,0),-1)
-            cv2.imshow("image",self.rgbimage)
-            cv2.waitKey(1)
-            new_vec=unit_vec*dep
-            quaternion = (self.orientationx,self.orientationy,self.orientationz,self.orientationw)
-            mat = tf.quaternion_matrix(quaternion)
-            transform_mat=mat
-            transform_mat[:3,3]=[self.x_drone,self.y_drone,self.z_drone]
-            new_vec_p = np.vstack((new_vec, np.ones(new_vec.shape[1])))
-            transform_mat_c_d = np.array([[0., 0., -1., 0.09],
-                                            [-1.,0., 0., 0.],
-                                            [0., 1., 0., -0.08],
-                                            [0., 0., 0., 1.]])
-            coord = np.matmul(transform_mat_c_d, new_vec_p)
-            coord=np.matmul(transform_mat, coord)
-            print(coord)
-            # print(self.x_drone,self.y_drone,self.z_drone)
             # print(cx,cy)
-            self.get_logger().info("Got 3d coordinate")
-            # return coord
-
+            k_int = np.array([[465.60148469763925,0,320.5],
+                              [0,465.60148469763925,240.5],
+                              [0,0,1]])
+            X = np.array([[cx],[cy],[1]])
+            X = np.matmul(np.linalg.inv(k_int),X)
+            unit_vec = X/np.linalg.norm(X,axis=0)
+            dep = self.depthimage[cy,cx]
+            # print(self.depthimage.shape)
+            # print(f"depth x,y {self.depthimage[cx,cy]}")
+            print(f"depth y,x {self.depthimage[cy,cx]}")
+            new_vec = dep*unit_vec
+            euler = tf.euler_from_quaternion([self.orientationx,self.orientationy,self.orientationz,self.orientationw])
+            # print("Drone orientation in quaternions: ",[self.orientationx,self.orientationy,self.orientationz,self.orientationw])
+            # print("Drone orientation in euler angles: ",euler)
+            # print("Drone position: ",self.x_drone,self.y_drone,self.z_drone)
+            quaternion = (self.orientationx,self.orientationy,self.orientationz,self.orientationw)
+            # print("Quaternion: ")
+            # print(quaternion)
+            mat = tf.quaternion_matrix(quaternion)
+            # print("Matrix: ")
+            # print(mat)
+            transform_mat = mat
+            # print("Transform matrix: ",transform_mat)
+            transform_mat[:3,3] = [self.y_drone,self.x_drone,self.z_drone]
+            new_vec_p = np. vstack((new_vec,np.ones(new_vec.shape[1])))
+            transform_mat_c_d = np.array([[1.,0.,0.,0.],
+                                          [0.,0.,1.,0.],
+                                          [0.,-1.,0.,0.],
+                                          [0.,0.,0.,1.]])
+            coord = np.matmul(transform_mat_c_d,new_vec_p)
+            coord = np.matmul(transform_mat,coord)
+            coord[1]=-1*coord[1]+0.5
+            self.coord3dx = coord[0]
+            self.coord3dy = coord[1]
+            print(coord)
 
 def main(args=None):
     rclpy.init(args=args)
