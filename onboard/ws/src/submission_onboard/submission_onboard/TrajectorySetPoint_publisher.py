@@ -6,9 +6,10 @@ from px4_msgs.msg import TrajectorySetpoint
 from px4_msgs.msg import Timesync
 from px4_msgs.msg import VehicleLocalPosition
 from px4_msgs.msg import OffboardControlMode
+from geometry_msgs.msg import Pose
 
 X_car = 1.0
-Y_car = 1.0
+Y_car = 1.0offboard_publisher
 Z_car = 0.1
 
 class SetPoint_Traj_Node(Node):
@@ -19,10 +20,14 @@ class SetPoint_Traj_Node(Node):
         self.x_drone = 0
         self.y_drone = 0
         self.z_drone = 0
+        self.X_car = 0
+        self.Y_car = 0
+        self.Z_car = 0
         self.subscription_pos = self.create_subscription(VehicleLocalPosition,'/VehicleLocalPosition_PubSubTopic',self.drone_odom_callback,10)
         self.subscription_time = self.create_subscription(Timesync,'/Timesync_PubSubTopic',self.timestamp_callback, 1)
         self.publisher_setpoint = self.create_publisher(TrajectorySetpoint, '/TrajectorySetpoint_PubSubTopic', 10)
         self.publisher_offboard = self.create_publisher(OffboardControlMode, '/OffboardControlMode_PubSubTopic', 10)
+        self.subscriber_car = self.create_subscription(Pose,'/Car_pose',self.car_pose,100)
         self.timer_offboard = self.create_timer(0.01, self.offboard_publisher)
         self.timer_traj = self.create_timer(0.1, self.traj_publisher)
         
@@ -34,19 +39,20 @@ class SetPoint_Traj_Node(Node):
         y_des = self.y_drone+0.35*delta_y/dist
         z_des = Z_car + 0.8
 
-        try_point = TrajectorySetpoint()
-        try_point.timestamp = self.timestamp
-        try_point.x = x_des
-        try_point.y = y_des
-        try_point.z = -z_des
+        if self.timestamp is not None:
+            try_point = TrajectorySetpoint()
+            try_point.timestamp = self.timestamp
+            try_point.x = x_des
+            try_point.y = y_des
+            try_point.z = -z_des
 
-        # self.get_logger().info('Published trajectory \n'+str(try_point))
+            # self.get_logger().info('Published trajectory \n'+str(try_point))
 
-        # self.get_logger().info('Publishing point')
-        self.publisher_setpoint.publish(try_point)
-        # self.get_logger().info('Published point')
+            # self.get_logger().info('Publishing point')
+            self.publisher_setpoint.publish(try_point)
+            # self.get_logger().info('Published point')
 
-        
+
     def offboard_publisher(self):
         if self.timestamp is not None:
             offboard_msg = OffboardControlMode()
@@ -70,6 +76,12 @@ class SetPoint_Traj_Node(Node):
     def timestamp_callback(self, msg):
         self.timestamp = msg.timestamp
         # self.get_logger().info('Got time stamp'+"\n"+str(msg))
+    
+    def car_pose(self, msg):
+        self.X_car = msg.position.x
+        self.Y_car = msg.position.y
+        self.Z_car = msg.position.z
+        # self.get_logger().info('got car coords'+"\n"+str(msg))
 
 def main(args=None):
     rclpy.init(args=args)
