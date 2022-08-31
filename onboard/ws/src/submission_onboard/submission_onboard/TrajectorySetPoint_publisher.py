@@ -6,11 +6,9 @@ from px4_msgs.msg import TrajectorySetpoint
 from px4_msgs.msg import Timesync
 from px4_msgs.msg import VehicleLocalPosition
 from px4_msgs.msg import OffboardControlMode
+from px4_msgs.msg import VehicleCommand
 from geometry_msgs.msg import Pose
 
-X_car = 1.0
-Y_car = 1.0offboard_publisher
-Z_car = 0.1
 
 class SetPoint_Traj_Node(Node):
 
@@ -23,23 +21,25 @@ class SetPoint_Traj_Node(Node):
         self.X_car = 0
         self.Y_car = 0
         self.Z_car = 0
-        self.subscription_pos = self.create_subscription(VehicleLocalPosition,'/VehicleLocalPosition_PubSubTopic',self.drone_odom_callback,10)
-        self.subscription_time = self.create_subscription(Timesync,'/Timesync_PubSubTopic',self.timestamp_callback, 1)
-        self.publisher_setpoint = self.create_publisher(TrajectorySetpoint, '/TrajectorySetpoint_PubSubTopic', 10)
+        self.counter = 0
+        self.subscription_time = self.create_subscription(Timesync,'/Timesync_PubSubTopic',self.timestamp_callback, 10)
         self.publisher_offboard = self.create_publisher(OffboardControlMode, '/OffboardControlMode_PubSubTopic', 10)
-        self.subscriber_car = self.create_subscription(Pose,'/Car_pose',self.car_pose,100)
+        self.publisher_vehicle_command = self.create_publisher(VehicleCommand, '/VehicleCommand_PubSubTopic', 10)
         self.timer_offboard = self.create_timer(0.01, self.offboard_publisher)
+        self.publisher_setpoint = self.create_publisher(TrajectorySetpoint, '/TrajectorySetpoint_PubSubTopic', 10)
         self.timer_traj = self.create_timer(0.1, self.traj_publisher)
+        self.subscription_pos = self.create_subscription(VehicleLocalPosition,'/VehicleLocalPosition_PubSubTopic',self.drone_odom_callback,100)
+        self.subscriber_car = self.create_subscription(Pose,'/Car_pose',self.car_pose,100)
         
     def traj_publisher(self):
         delta_x = X_car-self.x_drone 
         delta_y = Y_car-self.y_drone
         dist = math.sqrt(delta_x**2+delta_y**2) 
-        x_des = self.x_drone+0.35*delta_x/dist 
-        y_des = self.y_drone+0.35*delta_y/dist
+        x_des = self.x_drone+0.6*delta_x/dist 
+        y_des = self.y_drone+0.6*delta_y/dist
         z_des = Z_car + 0.8
 
-        if self.timestamp is not None:
+        if self.timestamp is not None and self.counter >= 10:
             try_point = TrajectorySetpoint()
             try_point.timestamp = self.timestamp
             try_point.x = x_des
@@ -63,7 +63,27 @@ class SetPoint_Traj_Node(Node):
             offboard_msg.attitude = False
             offboard_msg.body_rate = False
             self.publisher_offboard.publish(offboard_msg)
+            if self.counter < 10:
+                self.counter += 1
+            elif self.counter == 10:
+                self.get_logger().info("counter gone to 10")
+                self.publish_vehicle_command(VehicleCommand().VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
+                self.counter += 1
         # self.get_logger().info('Published offboard \n'+str(offboard_msg))
+
+    def publish_vehicle_command(self, command, param1, param2):
+        vehicle_cmd_msg = VehicleCommand()
+        vehicle_cmd_msg.timestamp = self.timestamp
+        vehicle_cmd_msg.param1 = param1
+        vehicle_cmd_msg.param2 = param2
+        vehicle_cmd_msg.command = command
+        vehicle_cmd_msg.target_system = 1
+        vehicle_cmd_msg.target_component = 1
+        vehicle_cmd_msg.source_system = 1
+        vehicle_cmd_msg.source_component = 1
+        vehicle_cmd_msg.from_external = True
+
+        self.publisher_vehicle_command.publish(vehicle_cmd_msg)
 
     def drone_odom_callback(self, msg):
         if msg.xy_valid and msg.z_valid:
