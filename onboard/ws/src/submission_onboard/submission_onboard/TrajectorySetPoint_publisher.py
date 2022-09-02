@@ -26,7 +26,7 @@ class SetPoint_Traj_Node(Node):
         self.publisher_offboard = self.create_publisher(OffboardControlMode, '/OffboardControlMode_PubSubTopic', 10)
         self.publisher_vehicle_command = self.create_publisher(VehicleCommand, '/VehicleCommand_PubSubTopic', 10)
         self.publisher_setpoint = self.create_publisher(TrajectorySetpoint, '/TrajectorySetpoint_PubSubTopic', 10)
-        self.timer_traj = self.create_timer(0.1, self.timer_callback)
+        self.timer_traj = self.create_timer(1, self.timer_callback)
         self.subscription_pos = self.create_subscription(VehicleLocalPosition,'/VehicleLocalPosition_PubSubTopic',self.drone_odom_callback,100)
         self.subscriber_car = self.create_subscription(Pose,'/Car_pose',self.car_pose,100)
         

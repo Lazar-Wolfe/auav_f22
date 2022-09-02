@@ -10,7 +10,7 @@ class Sample_traj_car(Node):
     def __init__(self):
         super().__init__('car_node')
         self.car_pose_publisher = self.create_publisher(Pose,'/Car_pose',10)
-        self.timer = self.create_timer(0.01,self.circular_traj)
+        self.timer = self.create_timer(1,self.circular_traj)
         self.i = 0
 
     def circular_traj(self):
