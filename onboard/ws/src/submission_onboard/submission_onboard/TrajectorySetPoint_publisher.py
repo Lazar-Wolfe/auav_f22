@@ -31,12 +31,19 @@ class SetPoint_Traj_Node(Node):
         self.subscriber_car = self.create_subscription(Pose,'/Car_pose',self.car_pose,100)
         
     def traj_publisher(self):
-        delta_x = self.X_car-self.x_drone 
-        delta_y = self.Y_car-self.y_drone
-        dist = math.sqrt(delta_x**2+delta_y**2) 
-        x_des = self.x_drone+0.6*delta_x/dist 
-        y_des = self.y_drone+0.6*delta_y/dist
-        z_des = self.Z_car + 0.8
+
+        # SATYAM KISHAN
+        # delta_x = self.X_car-self.x_drone 
+        # delta_y = self.Y_car-self.y_drone
+        # dist = math.sqrt(delta_x**2+delta_y**2) 
+        # x_des = self.x_drone+0.6*delta_x/dist 
+        # y_des = self.y_drone+0.6*delta_y/dist
+        # z_des = self.Z_car + 0.8
+        
+        # PRANJAL
+        x_des=self.X_car
+        y_des=self.Y_car - (1.0*2-0.75*2)**0.5
+        z_des=(self.Z_car+0.75)
 
         if self.timestamp is not None:
             try_point = TrajectorySetpoint()
