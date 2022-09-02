@@ -77,7 +77,7 @@ class TransformationNode(Node):
             msg.position.y = float(self.coord3dy)
             msg.position.z = float(0)
             self.publisher_.publish(msg)
-            self.get_logger().info("Published car world coordinates")
+            # self.get_logger().info("Published car world coordinates")
             self.coord3dx = self.coord3dy = None
 
     def projection(self):
@@ -88,7 +88,7 @@ class TransformationNode(Node):
             cy = int(self.imagey)
             # print(cx,cy)
             k_int = np.array([[465.60148469763925,0,320.5],
-                              [0,465.60148469763925,240.5],
+                              [0,659.4171771583216,240.5],
                               [0,0,1]])
             X = np.array([[cx],[cy],[1]])
             X = np.matmul(np.linalg.inv(k_int),X)
@@ -96,7 +96,7 @@ class TransformationNode(Node):
             dep = self.depthimage[cy,cx]
             # print(self.depthimage.shape)
             # print(f"depth x,y {self.depthimage[cx,cy]}")
-            print(f"depth y,x {self.depthimage[cy,cx]}")
+            # print(f"depth y,x {self.depthimage[cy,cx]}")
             new_vec = dep*unit_vec
             euler = tf.euler_from_quaternion([self.orientationx,self.orientationy,self.orientationz,self.orientationw])
             # print("Drone orientation in quaternions: ",[self.orientationx,self.orientationy,self.orientationz,self.orientationw])
@@ -118,10 +118,10 @@ class TransformationNode(Node):
                                           [0.,0.,0.,1.]])
             coord = np.matmul(transform_mat_c_d,new_vec_p)
             coord = np.matmul(transform_mat,coord)
-            coord[1]=-1*coord[1]+0.5
+            # coord[1]=-1*coord[1]+0.5
             self.coord3dx = coord[0]
-            self.coord3dy = coord[1]
-            print(coord)
+            self.coord3dy = -coord[1]+0.2
+            print(f"X = {self.coord3dx}\t Y = {self.coord3dy}")
 
 def main(args=None):
     rclpy.init(args=args)
