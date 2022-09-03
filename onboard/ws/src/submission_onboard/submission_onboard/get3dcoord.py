@@ -22,7 +22,7 @@ class TransformationNode(Node):
     def __init__(self):
         super().__init__('transformation_node')
         self.publisher_ = self.create_publisher(Pose,'Car_pose',100)
-        timer_period = 0.01
+        timer_period = 0.5
         self.timer = self.create_timer(timer_period,self.publisher_function)
         self.br = CvBridge()
         self.imagex = None
@@ -84,6 +84,11 @@ class TransformationNode(Node):
 
     def projection(self):
         if self.imagex == -999 or self.imagey == -999:
+            msg = Pose()
+            msg.position.x = float(previousx[-1])
+            msg.position.y = float(previousy[-1]) 
+            msg.position.z = float(0)
+            self.publisher_.publish(msg)
             return
         if self.x_drone is not None and self.depthimage is not None and self.imagex is not None and self.imagey is not None and self.rgbimage is not None:
             cx = int(self.imagex)
@@ -112,21 +117,24 @@ class TransformationNode(Node):
             self.coord3dy = -coord[1]+0.2
             previousx.append(self.coord3dx)
             previousy.append(self.coord3dy)
-            cond = abs(previousx[-1]-previousx[-2])+abs(previousy[-1]-previousy[-2])
+            with np.errstate(invalid='ignore'):
+                cond = abs(previousx[-1]-previousx[-2])+abs(previousy[-1]-previousy[-2])
             if(len(previousx)>10):
                 previousx.pop()
                 previousy.pop()
             if not cond:
                 previousx.pop(0)
                 previousy.pop(0)
-            if cond<2:
+            try:
+                # if cond<6:
                 print(f"X = {self.coord3dx}\t Y = {self.coord3dy}")
                 msg = Pose()
                 msg.position.x = float(self.coord3dx)
                 msg.position.y = float(self.coord3dy)
                 msg.position.z = float(0)
                 self.publisher_.publish(msg)
-
+            except:
+                print("Error")
 def main(args=None):
     rclpy.init(args=args)
 
