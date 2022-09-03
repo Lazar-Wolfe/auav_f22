@@ -18,9 +18,9 @@ class SetPoint_Traj_Node(Node):
         self.x_drone = 0
         self.y_drone = 0
         self.z_drone = 0
-        self.X_car = 1.0
-        self.Y_car = 1.0
-        self.Z_car = 5.0
+        self.X_car = 0.0
+        self.Y_car = 2.0
+        self.Z_car = 0.0
         self.counter = 0
         self.subscription_time = self.create_subscription(Timesync,'/Timesync_PubSubTopic',self.timestamp_callback, 10)
         self.publisher_offboard = self.create_publisher(OffboardControlMode, '/OffboardControlMode_PubSubTopic', 10)
@@ -33,18 +33,18 @@ class SetPoint_Traj_Node(Node):
     def traj_publisher(self):
 
         # SATYAM KISHAN
-        # delta_x = self.X_car-self.x_drone 
-        # delta_y = self.Y_car-self.y_drone
+        # delta_y = self.X_car-self.x_drone 
+        # delta_x = self.Y_car-self.y_drone
         # dist = math.sqrt(delta_x**2+delta_y**2) 
-        # x_des = self.x_drone+0.6*delta_x/dist 
-        # y_des = self.y_drone+0.6*delta_y/dist
+        # y_des = self.x_drone+0.6*delta_x/dist 
+        # x_des = self.y_drone+0.6*delta_y/dist
         # z_des = self.Z_car + 0.8
         
-        # PRANJAL
-        x_des=self.X_car
-        y_des=self.Y_car - (1.0*2-0.75*2)**0.5
-        z_des=(self.Z_car+0.75)
-
+        #PRANJAL
+        y_des=self.X_car- (1.0*2-0.75*2)**0.5
+        x_des=self.Y_car 
+        z_des=(self.Z_car+0.55)
+        print(f"Going to {x_des} {y_des} {z_des}")
         if self.timestamp is not None:
             try_point = TrajectorySetpoint()
             try_point.timestamp = self.timestamp

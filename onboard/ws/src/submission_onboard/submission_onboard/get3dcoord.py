@@ -16,11 +16,13 @@ from px4_msgs.msg import VehicleLocalPosition,VehicleAttitude
 # import tf2_ros
 # import tf2_geometry_msgs
 
+previousx = [0.,0.,0.]
+previousy = [0.,0.,0.]
 class TransformationNode(Node):
     def __init__(self):
         super().__init__('transformation_node')
-        self.publisher_ = self.create_publisher(Pose,'car3dcoord',10)
-        timer_period = 0.1
+        self.publisher_ = self.create_publisher(Pose,'Car_pose',100)
+        timer_period = 0.01
         self.timer = self.create_timer(timer_period,self.publisher_function)
         self.br = CvBridge()
         self.imagex = None
@@ -36,11 +38,11 @@ class TransformationNode(Node):
         self.orientationz = 0
         self.orientationw = 0
         self.depthimage = None
-        self.subscription = self.create_subscription(Pose, '/detector_topic',self.coord_callback,10)
-        self.subscription = self.create_subscription(Image,'/rgbd_camera/depth_image',self.depthimage_callback,10)
-        self.subscription = self.create_subscription(VehicleLocalPosition,'/VehicleLocalPosition_PubSubTopic',self.drone_odom_callback,10)
-        self.subscription = self.create_subscription(Image,'/rgbd_camera/image',self.rgbimage_callback,10)
-        self.subscription = self.create_subscription(VehicleAttitude, '/VehicleAttitude_PubSubTopic', self.drone_orientation_callback, 10)
+        self.subscription = self.create_subscription(Pose, '/detector_topic',self.coord_callback,100)
+        self.subscription = self.create_subscription(Image,'/rgbd_camera/depth_image',self.depthimage_callback,100)
+        self.subscription = self.create_subscription(VehicleLocalPosition,'/VehicleLocalPosition_PubSubTopic',self.drone_odom_callback,100)
+        self.subscription = self.create_subscription(Image,'/rgbd_camera/image',self.rgbimage_callback,100)
+        self.subscription = self.create_subscription(VehicleAttitude, '/VehicleAttitude_PubSubTopic', self.drone_orientation_callback, 100)
     def coord_callback(self,data):
         self.imagex = data.position.x
         self.imagey = data.position.y
@@ -86,7 +88,6 @@ class TransformationNode(Node):
         if self.x_drone is not None and self.depthimage is not None and self.imagex is not None and self.imagey is not None and self.rgbimage is not None:
             cx = int(self.imagex)
             cy = int(self.imagey)
-            # print(cx,cy)
             k_int = np.array([[465.60148469763925,0,320.5],
                               [0,659.4171771583216,240.5],
                               [0,0,1]])
@@ -94,22 +95,11 @@ class TransformationNode(Node):
             X = np.matmul(np.linalg.inv(k_int),X)
             unit_vec = X/np.linalg.norm(X,axis=0)
             dep = self.depthimage[cy,cx]
-            # print(self.depthimage.shape)
-            # print(f"depth x,y {self.depthimage[cx,cy]}")
-            # print(f"depth y,x {self.depthimage[cy,cx]}")
             new_vec = dep*unit_vec
             euler = tf.euler_from_quaternion([self.orientationx,self.orientationy,self.orientationz,self.orientationw])
-            # print("Drone orientation in quaternions: ",[self.orientationx,self.orientationy,self.orientationz,self.orientationw])
-            # print("Drone orientation in euler angles: ",euler)
-            # print("Drone position: ",self.x_drone,self.y_drone,self.z_drone)
             quaternion = (self.orientationx,self.orientationy,self.orientationz,self.orientationw)
-            # print("Quaternion: ")
-            # print(quaternion)
             mat = tf.quaternion_matrix(quaternion)
-            # print("Matrix: ")
-            # print(mat)
             transform_mat = mat
-            # print("Transform matrix: ",transform_mat)
             transform_mat[:3,3] = [self.y_drone,self.x_drone,self.z_drone]
             new_vec_p = np. vstack((new_vec,np.ones(new_vec.shape[1])))
             transform_mat_c_d = np.array([[1.,0.,0.,0.],
@@ -118,10 +108,24 @@ class TransformationNode(Node):
                                           [0.,0.,0.,1.]])
             coord = np.matmul(transform_mat_c_d,new_vec_p)
             coord = np.matmul(transform_mat,coord)
-            # coord[1]=-1*coord[1]+0.5
             self.coord3dx = coord[0]
             self.coord3dy = -coord[1]+0.2
-            print(f"X = {self.coord3dx}\t Y = {self.coord3dy}")
+            previousx.append(self.coord3dx)
+            previousy.append(self.coord3dy)
+            cond = abs(previousx[-1]-previousx[-2])+abs(previousy[-1]-previousy[-2])
+            if(len(previousx)>10):
+                previousx.pop()
+                previousy.pop()
+            if not cond:
+                previousx.pop(0)
+                previousy.pop(0)
+            if cond<2:
+                print(f"X = {self.coord3dx}\t Y = {self.coord3dy}")
+                msg = Pose()
+                msg.position.x = float(self.coord3dx)
+                msg.position.y = float(self.coord3dy)
+                msg.position.z = float(0)
+                self.publisher_.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)
