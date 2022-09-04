@@ -172,7 +172,7 @@ class TransformationNode(Node):
                     msg.position.x = float(sum(previousx)/len(previousx)+1)
                     msg.position.y = float(sum(previousy)/len(previousy)+1)
                     msg.position.z = float(0)
-                    print(f"Published 2 X: {msg.position.x}, Y: {msg.position.y}")
+                    print(f"Published 2 X: {X[0]}, Y: {X[1]}")
                     self.publisher_.publish(msg)
                     counter = 0
                 if len(previousx)>10:
