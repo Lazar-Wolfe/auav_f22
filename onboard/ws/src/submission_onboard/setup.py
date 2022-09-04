@@ -25,6 +25,7 @@ setup(
             'transformation_node = submission_onboard.get3dcoord:main',
             'detector_node = submission_onboard.redros:main',
             'car_detector_node = submission_onboard.car_detector:main',
+            'tunnel_detector_node = submission_onboard.tunnel:main',
         ],
     },
 )

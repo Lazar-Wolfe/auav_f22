@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from cmath import isnan
+import math
 import rclpy
 from rclpy.node import Node
 import cv2, numpy as np
@@ -15,7 +17,7 @@ from px4_msgs.msg import VehicleLocalPosition,VehicleAttitude
 # from scipy.spatial.transform import Rotation as R
 # import tf2_ros
 # import tf2_geometry_msgs
-
+counter = 0 
 previousx = [0.,0.,0.]
 previousy = [0.,0.,0.]
 class TransformationNode(Node):
@@ -83,6 +85,7 @@ class TransformationNode(Node):
             self.coord3dx = self.coord3dy = None
 
     def projection(self):
+        global counter
         if self.imagex == -999 or self.imagey == -999:
             msg = Pose()
             msg.position.x = float(previousx[-1])
@@ -124,27 +127,68 @@ class TransformationNode(Node):
 
             quaternion = (self.orientationx,self.orientationy,self.orientationz,self.orientationw)
             euler = tf.euler_from_quaternion(quaternion)
-            print(f"Roll: {euler[0]}, Pitch: {euler[1]}, Yaw: {euler[2]}")
+            # print(f"Roll: {euler[0]}, Pitch: {euler[1]}, Yaw: {euler[2]}")
             mat = tf.quaternion_matrix(quaternion)
             transform_mat = mat
             # print(f"drone x {self.x_drone} y {self.y_drone} z {self.z_drone}")
             transform_mat[:3,3] = [self.x_drone,self.y_drone,self.z_drone]
+            # print(f"Drone X: {self.x_drone}, Y: {self.y_drone}, Z: {self.z_drone}")
             # print(f"Drone X: {self.x_drone}, Y: {self.y_drone}, Z: {self.z_drone}")
             # print(f"Transform Matrix: {transform_mat}")
             X = np.append(X,1)
             # print(X)
             # print(X.shape)
             X = np.matmul(X,transform_mat)
-            print(f"World X: {X[0]}, Y: {X[1]}, Z: {X[2]}")
+            X[0]+=self.x_drone
+            X[1]+=self.y_drone
+            X[2]+=self.z_drone
 
-            # print(f"X: {X[0]}, Y: {X[1]}, Z: {X[2]}")
-            # print(transform_mat.shape)
             # cv2.circle(self.depthimage,(self.imagex,self.imagey),5,(0,255,0),-1)
-            cv2.imshow("RGB",self.rgbimage)
-            # cv2.imshow("Depth",self.depthimage)
-            cv2.waitKey(1)
-            # print(f"Drone X: {self.x_drone}, Y: {self.y_drone}, Z: {self.z_drone}")
-            # print(f"Actual X {self.x_drone-pleasex}, Y {self.y_drone+pleasey}")
+            # cv2.imshow("RGB",self.rgbimage)
+            # cv2.waitKey(1)
+            if math.isnan(X[0]) or math.isnan(X[1]) or math.isnan(X[2]):
+                
+                return
+            if len(previousx)>8:
+                errx = abs(previousx[-1]-X[0])
+                erry = abs(previousy[-1]-X[1])
+                if errx<0.75 and erry<0.75:
+                    # if within error
+                    previousx.append(X[0])
+                    previousy.append(X[1])
+                    print(f"World 1 X: {X[0]}, Y: {X[1]}, Z: {X[2]}")
+                    msg = Pose()
+                    msg.position.x = float(X[0])
+                    msg.position.y = float(X[1])
+                    msg.position.z = float(0)
+                    print(f"Published 1 X: {msg.position.x}, Y: {msg.position.y}")
+                    self.publisher_.publish(msg)
+                else:
+                    counter += 1
+                if counter > 5:
+                    # if not detected for a long time
+                    print(f"World 2 X: {X[0]}, Y: {X[1]}, Z: {X[2]}")
+                    msg = Pose()
+                    msg.position.x = float(sum(previousx)/len(previousx)+1)
+                    msg.position.y = float(sum(previousy)/len(previousy)+1)
+                    msg.position.z = float(0)
+                    print(f"Published 2 X: {msg.position.x}, Y: {msg.position.y}")
+                    self.publisher_.publish(msg)
+                    counter = 0
+                if len(previousx)>10:
+                    previousx.pop(0)
+                    previousy.pop(0)
+            else:
+                    # When the list is less than 8 only initially
+                    previousx.append(X[0])  
+                    previousy.append(X[1])
+                    print(f"World 3 X: {X[0]}, Y: {X[1]}, Z: {X[2]}")
+                    msg = Pose()
+                    msg.position.x = float(X[0])
+                    msg.position.y = float(X[1])
+                    msg.position.z = float(0)
+                    print(f"Published 3 X: {msg.position.x}, Y: {msg.position.y}")
+                    self.publisher_.publish(msg)
             
 def main(args=None):
     rclpy.init(args=args)
