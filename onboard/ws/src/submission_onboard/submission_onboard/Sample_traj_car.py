@@ -17,8 +17,8 @@ class Sample_traj_car(Node):
 
     def circular_traj(self,msg):
         car_pose = Pose()
-        car_pose.position.x = -msg.pose.pose.position.y
-        car_pose.position.y = msg.pose.pose.position.x
+        car_pose.position.x = -msg.pose.pose.position.y - 1
+        car_pose.position.y = msg.pose.pose.position.x + 1.8
         car_pose.position.z = msg.pose.pose.position.z
         # self.i = self.i%100 + 1    #increasing the value of i by 1 and then taking the remainder by 100
         self.car_pose_publisher.publish(car_pose)

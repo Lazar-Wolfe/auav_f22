@@ -93,48 +93,53 @@ class TransformationNode(Node):
         if self.x_drone is not None and self.depthimage is not None and self.imagex is not None and self.imagey is not None and self.rgbimage is not None:
             cx = int(self.imagex)
             cy = int(self.imagey)
-            k_int = np.array([[465.60148469763925,0,320.5],
-                              [0,659.4171771583216,240.5],
+            k_int = np.array([[465.60148469763925,0,320],
+                              [0,465.60148469763925,240],
                               [0,0,1]])
-            X = np.array([[cx],[cy],[1]])
-            X = np.matmul(np.linalg.inv(k_int),X)
-            unit_vec = X/np.linalg.norm(X,axis=0)
-            dep = self.depthimage[cy,cx]
-            new_vec = dep*unit_vec
-            euler = tf.euler_from_quaternion([self.orientationx,self.orientationy,self.orientationz,self.orientationw])
-            quaternion = (self.orientationx,self.orientationy,self.orientationz,self.orientationw)
-            mat = tf.quaternion_matrix(quaternion)
-            transform_mat = mat
-            transform_mat[:3,3] = [self.y_drone,self.x_drone,self.z_drone]
-            new_vec_p = np. vstack((new_vec,np.ones(new_vec.shape[1])))
-            transform_mat_c_d = np.array([[1.,0.,0.,0.],
-                                          [0.,0.,1.,0.],
-                                          [0.,-1.,0.,0.],
-                                          [0.,0.,0.,1.]])
-            coord = np.matmul(transform_mat_c_d,new_vec_p)
-            coord = np.matmul(transform_mat,coord)
-            self.coord3dx = coord[0]
-            self.coord3dy = -coord[1]+0.2
-            previousx.append(self.coord3dx)
-            previousy.append(self.coord3dy)
-            with np.errstate(invalid='ignore'):
-                cond = abs(previousx[-1]-previousx[-2])+abs(previousy[-1]-previousy[-2])
-            if(len(previousx)>10):
-                previousx.pop()
-                previousy.pop()
-            if not cond:
-                previousx.pop(0)
-                previousy.pop(0)
-            try:
-                # if cond<6:
-                print(f"X = {self.coord3dx}\t Y = {self.coord3dy}")
-                msg = Pose()
-                msg.position.x = float(self.coord3dx)
-                msg.position.y = float(self.coord3dy)
-                msg.position.z = float(0)
-                self.publisher_.publish(msg)
-            except:
-                print("Error")
+            print(f"Image coordinates: {cx},{cy}")
+            print(f"Depth image: {self.depthimage[cy,cx]}")
+            pleasex = (self.imagex-320)*self.depthimage[cy,cx]/465.60148469763925
+            pleasey = (self.imagey-240)*self.depthimage[cy,cx]/465.60148469763925
+            print(f"X: {pleasex} Y: {pleasey}")
+            # X = np.array([[cx],[cy],[1]])
+            # X = np.matmul(np.linalg.inv(k_int),X)
+            # unit_vec = X/np.linalg.norm(X,axis=0)
+            # dep = self.depthimage[cy,cx]
+            # new_vec = dep*unit_vec
+            # euler = tf.euler_from_quaternion([self.orientationx,self.orientationy,self.orientationz,self.orientationw])
+            # quaternion = (self.orientationx,self.orientationy,self.orientationz,self.orientationw)
+            # mat = tf.quaternion_matrix(quaternion)
+            # transform_mat = mat
+            # transform_mat[:3,3] = [self.y_drone,self.x_drone,self.z_drone]
+            # new_vec_p = np. vstack((new_vec,np.ones(new_vec.shape[1])))
+            # transform_mat_c_d = np.array([[1.,0.,0.,0.],
+            #                               [0.,0.,1.,0.],
+            #                               [0.,-1.,0.,0.],
+            #                               [0.,0.,0.,1.]])
+            # coord = np.matmul(transform_mat_c_d,new_vec_p)
+            # coord = np.matmul(transform_mat,coord)
+            # self.coord3dx = coord[0]
+            # self.coord3dy = -coord[1]+0.2
+            # previousx.append(self.coord3dx)
+            # previousy.append(self.coord3dy)
+            # with np.errstate(invalid='ignore'):
+            #     cond = abs(previousx[-1]-previousx[-2])+abs(previousy[-1]-previousy[-2])
+            # if(len(previousx)>10):
+            #     previousx.pop()
+            #     previousy.pop()
+            # if not cond:
+            #     previousx.pop(0)
+            #     previousy.pop(0)
+            # try:
+            #     # if cond<6:
+            #     print(f"X = {self.coord3dx}\t Y = {self.coord3dy}")
+            #     msg = Pose()
+            #     msg.position.x = float(self.coord3dx)
+            #     msg.position.y = float(self.coord3dy)
+            #     msg.position.z = float(0)
+            #     self.publisher_.publish(msg)
+            # except:
+            #     print("Error")
 def main(args=None):
     rclpy.init(args=args)
 
