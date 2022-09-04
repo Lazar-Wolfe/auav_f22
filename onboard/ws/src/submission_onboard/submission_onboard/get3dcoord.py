@@ -54,10 +54,10 @@ class TransformationNode(Node):
             self.z_drone = -msg.z
             
     def drone_orientation_callback(self, msg):
-        self.orientationx = msg.q[0]
-        self.orientationy = msg.q[1]
-        self.orientationz = msg.q[2]
-        self.orientationw = msg.q[3]
+        self.orientationw = msg.q[0]
+        self.orientationx = msg.q[1]
+        self.orientationy = msg.q[2]
+        self.orientationz = msg.q[3]
     def rgbimage_callback(self,data):
         try:
             cv_image = self.br.imgmsg_to_cv2(data, "bgr8")
@@ -93,53 +93,59 @@ class TransformationNode(Node):
         if self.x_drone is not None and self.depthimage is not None and self.imagex is not None and self.imagey is not None and self.rgbimage is not None:
             cx = int(self.imagex)
             cy = int(self.imagey)
-            k_int = np.array([[465.60148469763925,0,320],
-                              [0,465.60148469763925,240],
+            k_int = np.array([[465.60148469763925,0,320.5],
+                              [0,465.60148469763925,240.5],
                               [0,0,1]])
-            print(f"Image coordinates: {cx},{cy}")
-            print(f"Depth image: {self.depthimage[cy,cx]}")
-            pleasex = (self.imagex-320)*self.depthimage[cy,cx]/465.60148469763925
-            pleasey = (self.imagey-240)*self.depthimage[cy,cx]/465.60148469763925
-            print(f"X: {pleasex} Y: {pleasey}")
-            # X = np.array([[cx],[cy],[1]])
-            # X = np.matmul(np.linalg.inv(k_int),X)
-            # unit_vec = X/np.linalg.norm(X,axis=0)
-            # dep = self.depthimage[cy,cx]
-            # new_vec = dep*unit_vec
-            # euler = tf.euler_from_quaternion([self.orientationx,self.orientationy,self.orientationz,self.orientationw])
-            # quaternion = (self.orientationx,self.orientationy,self.orientationz,self.orientationw)
-            # mat = tf.quaternion_matrix(quaternion)
-            # transform_mat = mat
-            # transform_mat[:3,3] = [self.y_drone,self.x_drone,self.z_drone]
-            # new_vec_p = np. vstack((new_vec,np.ones(new_vec.shape[1])))
-            # transform_mat_c_d = np.array([[1.,0.,0.,0.],
-            #                               [0.,0.,1.,0.],
-            #                               [0.,-1.,0.,0.],
-            #                               [0.,0.,0.,1.]])
-            # coord = np.matmul(transform_mat_c_d,new_vec_p)
-            # coord = np.matmul(transform_mat,coord)
-            # self.coord3dx = coord[0]
-            # self.coord3dy = -coord[1]+0.2
-            # previousx.append(self.coord3dx)
-            # previousy.append(self.coord3dy)
-            # with np.errstate(invalid='ignore'):
-            #     cond = abs(previousx[-1]-previousx[-2])+abs(previousy[-1]-previousy[-2])
-            # if(len(previousx)>10):
-            #     previousx.pop()
-            #     previousy.pop()
-            # if not cond:
-            #     previousx.pop(0)
-            #     previousy.pop(0)
-            # try:
-            #     # if cond<6:
-            #     print(f"X = {self.coord3dx}\t Y = {self.coord3dy}")
-            #     msg = Pose()
-            #     msg.position.x = float(self.coord3dx)
-            #     msg.position.y = float(self.coord3dy)
-            #     msg.position.z = float(0)
-            #     self.publisher_.publish(msg)
-            # except:
-            #     print("Error")
+            pleasex = (cx-320)*self.depthimage[cy,cx]/465.60148469763925
+            pleasey = (cy-240)*self.depthimage[cy,cx]/465.60148469763925
+            pleasez = self.depthimage[cy,cx]
+            # print(f"Image X: {self.imagex}, Y: {self.imagey}")
+            # print(f"Depth X:{cx}, Y:{cy}")
+            # print(f"Depth {self.depthimage[cy,cx]}")
+
+            
+            # Coordinates with respect to camera frame
+            # print(f"Please X: {pleasex}, Y: {pleasey}, Z: {pleasez}") 
+            # Correct till here
+
+            cv2.circle(self.rgbimage,(int(cx),int(cy)),5,(0,255,0),-1)
+            X = np.array([pleasex,pleasey,pleasez])
+            np.reshape(X,((3,1)))
+            transform_camera_to_drone = np.array([[1.,0.,0.],
+                                                  [0.,0.,1.],
+                                                  [0.,-1.,0.]])
+            # print(X.shape)
+            X = np.matmul(transform_camera_to_drone,X)
+
+
+            # Coordinates with respect to drone frame
+            # print(f"X: {X[0]}, Y: {X[1]}, Z: {X[2]}")
+            # Correct till here
+
+            quaternion = (self.orientationx,self.orientationy,self.orientationz,self.orientationw)
+            euler = tf.euler_from_quaternion(quaternion)
+            print(f"Roll: {euler[0]}, Pitch: {euler[1]}, Yaw: {euler[2]}")
+            mat = tf.quaternion_matrix(quaternion)
+            transform_mat = mat
+            # print(f"drone x {self.x_drone} y {self.y_drone} z {self.z_drone}")
+            transform_mat[:3,3] = [self.x_drone,self.y_drone,self.z_drone]
+            # print(f"Drone X: {self.x_drone}, Y: {self.y_drone}, Z: {self.z_drone}")
+            # print(f"Transform Matrix: {transform_mat}")
+            X = np.append(X,1)
+            # print(X)
+            # print(X.shape)
+            X = np.matmul(X,transform_mat)
+            print(f"World X: {X[0]}, Y: {X[1]}, Z: {X[2]}")
+
+            # print(f"X: {X[0]}, Y: {X[1]}, Z: {X[2]}")
+            # print(transform_mat.shape)
+            # cv2.circle(self.depthimage,(self.imagex,self.imagey),5,(0,255,0),-1)
+            cv2.imshow("RGB",self.rgbimage)
+            # cv2.imshow("Depth",self.depthimage)
+            cv2.waitKey(1)
+            # print(f"Drone X: {self.x_drone}, Y: {self.y_drone}, Z: {self.z_drone}")
+            # print(f"Actual X {self.x_drone-pleasex}, Y {self.y_drone+pleasey}")
+            
 def main(args=None):
     rclpy.init(args=args)
 
