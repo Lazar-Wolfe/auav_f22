@@ -10,7 +10,9 @@ from px4_msgs.msg import OffboardControlMode
 from px4_msgs.msg import VehicleCommand
 from geometry_msgs.msg import Pose
 
-
+cntr = 0
+previousx = [0.,0.,0.]
+previousy = [0.,0.,0.]
 class SetPoint_Traj_Node(Node):
 
     def __init__(self):
@@ -95,6 +97,7 @@ class SetPoint_Traj_Node(Node):
 
 
         # print(f"Going to {x_des} {y_des} {z_des}")
+        
         if self.timestamp is not None:
             try_point = TrajectorySetpoint()
             try_point.timestamp = self.timestamp
@@ -102,17 +105,19 @@ class SetPoint_Traj_Node(Node):
             try_point.y = y_des
             try_point.z = -z_des
             try_point.yaw = yaw_des
+        
 
             # try_point.vx = x_dot_des
             # try_point.vy = y_dot_des
             # try_point.vz = z_dot_des
 
-
             # self.get_logger().info('Published trajectory \n'+str(try_point))
-
             # self.get_logger().info('Publishing point')
             self.publisher_setpoint.publish(try_point)
             # self.get_logger().info('Published point')
+
+
+            
 
     def timer_callback(self):
         self.offboard_publisher()
@@ -164,10 +169,34 @@ class SetPoint_Traj_Node(Node):
         # self.get_logger().info('Got time stamp'+"\n"+str(msg))
     
     def car_pose(self, msg):
-        self.X_car = msg.position.y
-        self.Y_car = msg.position.x
-        self.Z_car = - msg.position.z
+        if len(previousx) > 3:
+            errx = abs(previousx[-1]-self.X_car)
+            erry = abs(previousy[-1]-self.Y_car)
+            if errx < 0.5 and erry < 0.5:
+                previousx.append(X_car)
+                previousy.append(Y_car)
+                self.X_car = msg.position.y
+                self.Y_car = msg.position.x
+                self.Z_car = - msg.position.z
         # self.get_logger().info('got car coords'+"\n"+str(msg))
+            else:
+                cntr =+ 1
+            if cntr > 5: #here we can change the numbers of the differences to only 2 differnces
+                avg_diff_errx = ((previousx[-1]-previousx[-2]) + (previousx[-2] - previousx[-3]) + (previousx[-3] - previousx[-4]) + (previousx[-4] - previousx[-5]))/4
+                avg_diff_erry = ((previousy[-1]-previousy[-2]) + (previousy[-2] - previousy[-3]) + (previousy[-3] - previousy[-4]) + (previousy[-4] - previousy[-5]))/4
+                self.X_car = previousx[-1] + avg_diff_errx
+                self.Y_car = previousy[-1] + avg_diff_erry
+                self.Z_car = msg.pose.position.z # no error in z till now
+            if len(previousx) > 10:
+                previousx.pop(0)
+                previousy.pop(0)
+        else:
+            previousx.append(self.X_car)
+            previousy.append(self.Y_car)
+            self.X_car = msg.position.y
+            self.Y_car = msg.position.x
+            self.Z_car = - msg.position.z
+
 
 def main(args=None):
     rclpy.init(args=args)

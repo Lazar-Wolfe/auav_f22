@@ -169,8 +169,8 @@ class TransformationNode(Node):
                     # if not detected for a long time
                     print(f"World 2 X: {X[0]}, Y: {X[1]}, Z: {X[2]}")
                     msg = Pose()
-                    msg.position.x = float(sum(previousx)/len(previousx)+1)
-                    msg.position.y = float(sum(previousy)/len(previousy)+1)
+                    msg.position.x = float(X[0])
+                    msg.position.y = float(X[1])
                     msg.position.z = float(0)
                     print(f"Published 2 X: {msg.position.x}, Y: {msg.position.y}")
                     self.publisher_.publish(msg)
