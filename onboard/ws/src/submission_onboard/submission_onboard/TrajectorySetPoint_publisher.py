@@ -30,8 +30,9 @@ class SetPoint_Traj_Node(Node):
         self.yaw_car=0.0
         self.counter = 0
 
-        self.h = 0.8
+        self.h = 0.4
         self.r = math.sqrt(1-self.h**2)
+        self.R = 1.0
 
         self.x_err_fct = 1
         self.y_err_fct = 1
@@ -74,9 +75,9 @@ class SetPoint_Traj_Node(Node):
         # yaw_des = math.atan2(delta_y,delta_x)
         
         #PRANJAL
-        y_des=self.Y_car + self.y_err_fct*((1.0**2-0.65**2)**0.5)*math.cos(self.yaw_car)
-        x_des=self.X_car + self.x_err_fct*((1.0**2-0.65**2)**0.5)*math.sin(self.yaw_car)
-        z_des=(self.Z_car + 0.65)
+        y_des=self.Y_car + self.y_err_fct*(((self.R)**2-(self.h)**2)**0.5)*math.cos(self.yaw_car)
+        x_des=self.X_car + self.x_err_fct*(((self.R)**2-(self.h)**2)**0.5)*math.sin(self.yaw_car)
+        z_des=(self.Z_car + self.h)
         yaw_des = self.yaw_car
 
         # err_x=x_des-self.drone_curr_x
