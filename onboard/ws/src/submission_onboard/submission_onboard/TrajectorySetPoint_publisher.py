@@ -94,7 +94,7 @@ class SetPoint_Traj_Node(Node):
         if self.timestamp is not None:
             try_point = TrajectorySetpoint()
             try_point.timestamp = self.timestamp
-            try_point.x = x_des
+            try_point.x =  x_des
             try_point.y = y_des
             try_point.z = -z_des
             try_point.yaw = yaw_des
