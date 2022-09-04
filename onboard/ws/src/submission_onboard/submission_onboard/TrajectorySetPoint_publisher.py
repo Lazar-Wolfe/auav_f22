@@ -70,6 +70,7 @@ class SetPoint_Traj_Node(Node):
         # z_des = self.Z_car + self.h
         # yaw_des = math.atan2(delta_y,delta_x)
         
+        #PRANJAL
         y_des=self.Y_car + ((1.0**2-0.65**2)**0.5)*math.cos(self.yaw_car)
         x_des=self.X_car +((1.0**2-0.65**2)**0.5)*math.sin(self.yaw_car)
         z_des=(self.Z_car + 0.65)
