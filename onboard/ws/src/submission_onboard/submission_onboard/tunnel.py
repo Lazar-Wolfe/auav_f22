@@ -71,6 +71,8 @@ class TunnelNode(Node):
                 box = cv2.boxPoints(rect)
                 box = np.int0(box)
                 area = cv2.contourArea(cnt)
+                if area<5000:
+                    continue
                 approx = cv2.approxPolyDP(cnt,0.01*cv2.arcLength(cnt,True),True)
                 area = cv2.contourArea(cnt)
                 area_rect = cv2.contourArea(box)
@@ -83,6 +85,8 @@ class TunnelNode(Node):
                 cv2.drawContours(frame,[box],0,(0,255,255),2)
                 cv2.drawContours(frame,cnt,-1,(0,0,255),2)
                 m = cv2.moments(cnt)
+                if m['m00']==0:
+                    continue
                 cx = m['m10'] / m['m00']
                 cy = m['m01'] / m['m00']
                 inside = cx>150 and cx<550 and cy>160
