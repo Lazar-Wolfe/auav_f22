@@ -69,6 +69,30 @@ class worldToImage(Node):
         k_int = np.array([[465.60148469763925,0,320.5],
                               [0,465.60148469763925,240.5],
                               [0,0,1]]) 
+        if self.dronez is not None:
+            self.coord3dx -= self.dronex
+            self.coord3dy -= self.droney
+            self.coord3dz -= self.dronez
+            quaternion = (self.orientationx,self.orientationy,self.orientationz,self.orientationw)
+            euler = tf.euler_from_quaternion(quaternion)
+            # print(f"Roll: {euler[0]}, Pitch: {euler[1]}, Yaw: {euler[2]}")
+            mat = tf.quaternion_matrix(quaternion)
+            transform_mat = mat
+            # print(f"drone x {self.x_drone} y {self.y_drone} z {self.z_drone}")
+            transform_mat[:3,3] = [self.dronex,self.droney,self.dronez]
+            X = np.array([self.coord3dx,self.coord3dy,self.coord3dz])
+            X = np.matmul(transform_mat,X)
+            transform_camera_to_drone = np.array([[1.,0.,0.],
+                                                  [0.,0.,1.],
+                                                  [0.,-1.,0.]])
+            X = np.matmul(X,transform_camera_to_drone)
+            depth = X[2]
+            self.imagex = X[0]*465.60148469763925/depth+320
+            self.imagey = X[1]*465.60148469763925/depth+240
+            cv2.circle(self.rgbimage,(int(self.imagex),int(self.imagey)),5,(100,200,140),-1)
+            print("image coordinates",self.imagex,self.imagey)
+            cv2.imshow("Image with circle",self.rgbimage)
+            cv2.waitKey(1)
         
 
 def main(args=None):
