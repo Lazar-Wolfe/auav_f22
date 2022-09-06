@@ -24,7 +24,7 @@ setup(
             'car_fake = submission_onboard.Sample_traj_car:main',
             'transformation_node = submission_onboard.get3dcoord:main',
             'detector_node = submission_onboard.redros:main',
-            'car_detector_node = submission_onboard.car_detector:main',
+            'car_detector_node = submission_onboard.cardetect:main',
             'tunnel_detector_node = submission_onboard.tunnel:main',
         ],
     },

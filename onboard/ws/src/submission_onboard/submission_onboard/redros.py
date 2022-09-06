@@ -18,7 +18,7 @@ def red_detector(frame):
     lower_red = np.array([0,19,85])
     upper_red = np.array([1,255,255])  
     mask = cv2.inRange(hsv, lower_red, upper_red)
- 
+
     mask_3 = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
     _,th = cv2.threshold(mask, 50, 255, cv2.THRESH_BINARY)
     white = np.argwhere(th == 255)
