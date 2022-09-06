@@ -26,6 +26,7 @@ setup(
             'detector_node = submission_onboard.redros:main',
             'car_detector_node = submission_onboard.cardetect:main',
             'tunnel_detector_node = submission_onboard.tunnel:main',
+            'world2image_node = submission_onboard.worldtoimage:main',
         ],
     },
 )
