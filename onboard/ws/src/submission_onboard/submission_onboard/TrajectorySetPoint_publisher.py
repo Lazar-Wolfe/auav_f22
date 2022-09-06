@@ -74,9 +74,9 @@ class SetPoint_Traj_Node(Node):
     #     self.drone_curr_vel_z=msg.twist.twist.linear.z
         
     def traj_publisher(self):
-        print("Just inside")
+        # print("Just inside")
         if self.X_car is not None and self.Y_car is not None :
-            print("inside trajpublisher")
+            # print("inside trajpublisher")
             # delta_x = self.X_car-self.x_drone
             # delta_y = self.Y_car-self.y_drone
             # dist = math.sqrt(delta_x**2+delta_y**2)
@@ -86,7 +86,6 @@ class SetPoint_Traj_Node(Node):
             # z_des = self.Z_car + self.h
             # yaw_des = math.atan2(delta_y,delta_x)
             
-            #PRANJAL
             y_des=self.Y_car + self.y_err_fct*(((self.R)**2-(self.h)**2)**0.5)*math.cos(self.yaw_car)
             x_des=self.X_car + self.x_err_fct*(((self.R)**2-(self.h)**2)**0.5)*math.sin(self.yaw_car)
             z_des=(self.Z_car + self.h)
@@ -187,7 +186,7 @@ class SetPoint_Traj_Node(Node):
     
     def car_pose(self, msg):
         global cntr
-        print("Gopt car pose")
+        # print("Gopt car pose")
         self.X_car = msg.position.y
         self.Y_car = msg.position.x
         self.Z_car = - msg.position.z
