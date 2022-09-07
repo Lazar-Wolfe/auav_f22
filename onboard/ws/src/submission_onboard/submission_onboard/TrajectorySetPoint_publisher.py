@@ -1,6 +1,7 @@
 #!/usr/bin/env pyton3
 import rclpy
 import math
+import numpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from px4_msgs.msg import TrajectorySetpoint
@@ -55,6 +56,15 @@ class SetPoint_Traj_Node(Node):
         self.Y2_car = None
         self.Y3_car = None
         self.Y4_car = None
+
+        self.previous_X1_car = None
+        self.previous_X2_car = None
+        self.previous_X3_car = None
+        self.previous_X4_car = None
+        self.previous_Y1_car = None
+        self.previous_Y2_car = None
+        self.previous_Y3_car = None
+        self.previous_Y4_cAr = None
 
         # self.drone_curr_x=-3.0
         # self.drone_curr_y=0.0
@@ -122,10 +132,10 @@ class SetPoint_Traj_Node(Node):
             self.previous_Y3_car = previousy[-1] - math.sin(self.yaw_car)*self.r
             self.previous_Y4_car = previousy[-1]- math.cos(self.yaw_car)*self.r
 
-            self.dist_1 = math.sqrt((self.X_car - previous_X1_car)**2 + (self.Y_car - previous_Y1_car)**2)
-            self.dist_2 = math.sqrt((self.X_car - previous_X2_car)**2 + (self.Y_car - previous_Y2_car)**2)
-            self.dist_3 = math.sqrt((self.X_car - previous_X3_car)**2 + (self.Y_car - previous_Y3_car)**2)
-            self.dist_4 = math.sqrt((self.X_car - previous_X4_car)**2 + (self.Y_car - previous_Y4_car)**2)
+            self.dist_1 = math.sqrt((self.X_car - self.previous_X1_car)**2 + (self.Y_car - self.previous_Y1_car)**2)
+            self.dist_2 = math.sqrt((self.X_car - self.previous_X2_car)**2 + (self.Y_car - self.previous_Y2_car)**2)
+            self.dist_3 = math.sqrt((self.X_car - self.previous_X3_car)**2 + (self.Y_car - self.previous_Y3_car)**2)
+            self.dist_4 = math.sqrt((self.X_car - self.previous_X4_car)**2 + (self.Y_car - self.previous_Y4_car)**2)
 
             
 
