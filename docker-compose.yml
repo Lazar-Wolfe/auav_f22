@@ -116,8 +116,8 @@ services:
 
   # grader
   grader:
-    profiles:
-        - donotstart
+    # profiles:
+        # - donotstart
     container_name: grader
     hostname: grader
     image: jgoppert/auav_f22_grader:latest
