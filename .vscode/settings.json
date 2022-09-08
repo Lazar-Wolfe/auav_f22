@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "*.idl": "cpp"
+        "*.idl": "cpp",
+        "*.ipp": "cpp",
+        "atomic": "cpp"
     }
 }
