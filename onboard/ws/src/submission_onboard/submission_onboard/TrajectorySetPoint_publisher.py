@@ -1,6 +1,7 @@
 #!/usr/bin/env pyton3
 import rclpy
 import math
+import numpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from px4_msgs.msg import TrajectorySetpoint
@@ -42,10 +43,28 @@ class SetPoint_Traj_Node(Node):
 
         self.y_err_fct = 1
 
+        self.err_yaw = - 3*math.pi/2
         self.car_x_new=None
         self.car_y_new=None
         self.car_z_new=None
 
+        self.X1_car = None
+        self.X2_car = None
+        self.X3_car = None
+        self.X4_car = None
+        self.Y1_car = None
+        self.Y2_car = None
+        self.Y3_car = None
+        self.Y4_car = None
+
+        self.previous_X1_car = None
+        self.previous_X2_car = None
+        self.previous_X3_car = None
+        self.previous_X4_car = None
+        self.previous_Y1_car = None
+        self.previous_Y2_car = None
+        self.previous_Y3_car = None
+        self.previous_Y4_cAr = None
 
         # self.drone_curr_x=-3.0
         # self.drone_curr_y=0.0
@@ -89,12 +108,44 @@ class SetPoint_Traj_Node(Node):
             y_des=self.Y_car + self.y_err_fct*(((self.R)**2-(self.h)**2)**0.5)*math.cos(self.yaw_car)
             x_des=self.X_car + self.x_err_fct*(((self.R)**2-(self.h)**2)**0.5)*math.sin(self.yaw_car)
             z_des=(self.Z_car + self.h)
-            self.car_x_new=self.X_car - self.x_drone
-            self.car_y_new=self.Y_car - self.y_drone
+            self.car_x_new = self.X_car - self.x_drone
+            self.car_y_new = self.Y_car - self.y_drone
             self.ang_drn_rvr =math.atan2(self.car_y_new,self.car_x_new)
-            self.yaw_des =self.ang_drn_rvr # this works in all the cases of quadrants, yaw_des is the final required yaw of drone
-
+            self.yaw_des = self.ang_drn_rvr # this works in all the cases of quadrants, yaw_des is the final required yaw of drone
+            # if self.drone_yaw<-math.pi/2 and self.drone_yaw>-math.pi:
+            #     self.yaw_des=-3*math.pi/2 -self.drone_yaw + self.err_yaw
+            # else:
+            #     self.yaw_des=math.pi/2 - self.drone_yaw + self.err_yaw
             self.drone_yaw = self.yaw_des
+            # print("yaw_des",self.yaw_des)
+
+            #taking drx of movement of car so that we can make the axes wrt to the car and then get those 4 points.
+            self.yaw_car = (math.atan2((previousy[-1] - previousy[-2]),(previousx[-1] - previousy[-2])) + math.atan2((previousy[-2] - previousy[-3]),(previousx[-2] - previousx[-3])) + math.atan2((previousy[-3] - previousy[-4]),(previousx[-3] - previousx[-4]))) / 3
+
+            self.previous_X1_car = previousx[-1] + math.cos(self.yaw_car)*self.r
+            self.previous_X2_car = previousx[-1] + math.sin(self.yaw_car)*self.r
+            self.previous_X3_car = previousx[-1] - math.cos(self.yaw_car)*self.r
+            self.previous_X4_car = previousx[-1] - math.sin(self.yaw_car)*self.r
+
+            self.previous_Y1_car = previousy[-1] + math.sin(self.yaw_car)*self.r
+            self.previous_Y2_car = previousy[-1] + math.cos(self.yaw_car)*self.r
+            self.previous_Y3_car = previousy[-1] - math.sin(self.yaw_car)*self.r
+            self.previous_Y4_car = previousy[-1]- math.cos(self.yaw_car)*self.r
+
+            self.dist_1 = math.sqrt((self.X_car - self.previous_X1_car)**2 + (self.Y_car - self.previous_Y1_car)**2)
+            self.dist_2 = math.sqrt((self.X_car - self.previous_X2_car)**2 + (self.Y_car - self.previous_Y2_car)**2)
+            self.dist_3 = math.sqrt((self.X_car - self.previous_X3_car)**2 + (self.Y_car - self.previous_Y3_car)**2)
+            self.dist_4 = math.sqrt((self.X_car - self.previous_X4_car)**2 + (self.Y_car - self.previous_Y4_car)**2)
+
+            
+
+
+            
+
+
+
+
+
 
             # err_x=x_des-self.drone_curr_x
             # err_y=y_des-self.drone_curr_y
@@ -177,6 +228,8 @@ class SetPoint_Traj_Node(Node):
             self.y_drone = msg.y
             self.z_drone = -msg.z
             self.drone_yaw = msg.heading
+            print("Calling Odom callback, this is heading")
+            print(msg.heading)
             # self.get_logger().info('got current coords'+"\n"+str(msg))
 
 
