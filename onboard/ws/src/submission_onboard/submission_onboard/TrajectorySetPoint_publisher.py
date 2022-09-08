@@ -1,7 +1,7 @@
 #!/usr/bin/env pyton3
 import rclpy
 import math
-import numpy
+import numpy as np
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from px4_msgs.msg import TrajectorySetpoint
@@ -10,6 +10,7 @@ from px4_msgs.msg import VehicleLocalPosition
 from px4_msgs.msg import OffboardControlMode
 from px4_msgs.msg import VehicleCommand
 from geometry_msgs.msg import Pose
+import tf_transformations as tf
 
 cntr = 0
 previousx = [0.,0.,0.]
@@ -56,7 +57,10 @@ class SetPoint_Traj_Node(Node):
         self.Y2_car = None
         self.Y3_car = None
         self.Y4_car = None
-
+        self.coord3dx = self.coord3dy = self.coord3dz = None
+        self.dronex = self.droney = self.dronez = None
+        self.orientationx = self.orientationy = self.orientationz = self.orientaionw = None
+        self.distance_to_collision = None
         self.previous_X1_car = None
         self.previous_X2_car = None
         self.previous_X3_car = None
@@ -271,7 +275,54 @@ class SetPoint_Traj_Node(Node):
             self.X_car = msg.position.y
             self.Y_car = msg.position.x
             self.Z_car = - msg.position.z
-        
+    
+    # DISTANCE TO COLLISION
+    '''
+    def transform(self):
+        k_int = np.array([[465.60148469763925,0,320.5],
+                              [0,465.60148469763925,240.5],
+                              [0,0,1]]) 
+        if self.dronez is not None and self.coord3dx is not None and self.rgbimage is not None:
+            
+            self.coord3dx -= self.dronex
+            self.coord3dy -= self.droney
+            self.coord3dz -= self.dronez
+            quaternion = (self.orientationx,self.orientationy,self.orientationz,self.orientationw)
+            euler = tf.euler_from_quaternion(quaternion)
+            mat = tf.quaternion_matrix(quaternion)
+            transform_mat = mat
+            transform_mat[:3,3] = [self.dronex,self.droney,self.dronez]
+            transform_mat = np.linalg.inv(transform_mat)
+            X = np.array([self.coord3dx,self.coord3dy,self.coord3dz,1])
+            X = np.matmul(X,transform_mat)
+            transform_camera_to_drone = np.array([[1.,0.,0.],
+                                                  [0.,0.,1.],
+                                                  [0.,-1.,0.]])
+            X = np.array([X[0],X[1],X[2]])
+
+            transform_camera_to_drone = np.linalg.inv(transform_camera_to_drone)
+            X = np.matmul(transform_camera_to_drone,X)
+            depth = X[2]
+            self.dist_to_collision = depth  
+    def drone_odom_callback(self, msg):
+        if msg.xy_valid and msg.z_valid:
+            self.dronex = msg.y
+            self.droney = msg.x
+            self.dronez = -msg.z
+            
+    def drone_orientation_callback(self, msg):
+        self.orientationw = msg.q[0]
+        self.orientationx = msg.q[1]
+        self.orientationy = msg.q[2]
+        self.orientationz = msg.q[3]
+
+    def trajectory_callback(self,data):
+        msg = TrajectorySetpoint()
+        self.coord3dx = data.y
+        self.coord3dy = data.x
+        self.coord3dz = -data.z
+        self.transform()
+    '''
 
 def main(args=None):
     rclpy.init(args=args)
