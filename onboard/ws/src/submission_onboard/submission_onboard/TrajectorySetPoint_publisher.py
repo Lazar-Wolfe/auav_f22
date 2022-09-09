@@ -1,4 +1,6 @@
 #!/usr/bin/env pyton3
+#from hashlib import sha3_384
+#from turtle import end_fill
 import rclpy
 import math
 import numpy as np
@@ -28,6 +30,10 @@ class SetPoint_Traj_Node(Node):
         self.y_drone =None
         self.z_drone =None
         self.drone_yaw=None
+
+        self.data_x=0.0
+        self.data_y=0.0
+        self.data_z=0.0
 
         self.X_car = None
         self.Y_car = None
@@ -70,6 +76,16 @@ class SetPoint_Traj_Node(Node):
         self.previous_Y3_car = None
         self.previous_Y4_cAr = None
 
+        self.x_des=0.0
+        self.y_des=0.0
+        self.z_des=0.0
+        self.yaw_des=0.0
+
+        self.x_new=self.x_des
+        self.y_new=self.y_des
+        self.z_new=self.z_des
+
+
         # self.drone_curr_x=-3.0
         # self.drone_curr_y=0.0
         # self.drone_curr_z=0.06
@@ -95,6 +111,46 @@ class SetPoint_Traj_Node(Node):
     #     self.drone_curr_vel_x=msg.twist.twist.linear.x
     #     self.drone_curr_vel_y=msg.twist.twist.linear.y
     #     self.drone_curr_vel_z=msg.twist.twist.linear.z
+    def obstacle_avoidance(self):
+            self.trajectory_callback()
+            if self.distance_to_collision >1.3:
+                return
+            else:
+                while(self.distance_to_collision<=1.3):
+                    self.data_x+=0.15
+                    self.data_z=self.z_des
+                    self.data_y=math.sqrt(1-self.x_new**2-self.z_new**2)
+                    dist1=math.sqrt((self.X_car-self.data_x)**2+(self.Y_car-self.data_y)**2)
+                    self.trajectory_callback()
+
+                    if self.distance_to_collision >1.3:
+                        return
+                    else:
+                        self.data_x-=0.3
+                        self.data_z=self.z_des
+                        self.data_y=math.sqrt(1-self.x_new**2-self.z_new**2)
+                        self.trajectory_callback()
+                        if self.distance_to_collision>1.3:
+                            return
+                        else:
+                            dist2=math.sqrt((self.X_car-self.data_x)**2+(self.Y_car-self.data_y)**2)
+                            if dist1>dist2 and dist1 or dist2 is not complex:
+                                continue
+                            elif dist1<dist2 and dist1 and dist2 is not complex:
+                                self.data_x+=0.3
+                                self.data_z=self.z_des
+                                self.data_y=math.sqrt(1-self.x_new**2-self.z_new**2)
+                            elif dist1 is complex:
+                                continue
+                            elif dist2 is complex:
+                                self.data_x+=0.3
+                                self.data_z=self.z_des
+                                self.data_y=math.sqrt(1-self.x_new**2-self.z_new**2)
+                return
+                    
+
+
+
         
     def traj_publisher(self):
         # print("Just inside")
@@ -109,9 +165,9 @@ class SetPoint_Traj_Node(Node):
             # z_des = self.Z_car + self.h
             # yaw_des = math.atan2(delta_y,delta_x)
             
-            y_des=self.Y_car + self.y_err_fct*(((self.R)**2-(self.h)**2)**0.5)*math.cos(self.yaw_car)
-            x_des=self.X_car + self.x_err_fct*(((self.R)**2-(self.h)**2)**0.5)*math.sin(self.yaw_car)
-            z_des=(self.Z_car + self.h)
+            self.y_des=self.Y_car + self.y_err_fct*(((self.R)**2-(self.h)**2)**0.5)*math.cos(self.yaw_car)
+            self.x_des=self.X_car + self.x_err_fct*(((self.R)**2-(self.h)**2)**0.5)*math.sin(self.yaw_car)
+            self.z_des=(self.Z_car + self.h)
             self.car_x_new = self.X_car - self.x_drone
             self.car_y_new = self.Y_car - self.y_drone
             self.ang_drn_rvr =math.atan2(self.car_y_new,self.car_x_new)
@@ -141,15 +197,6 @@ class SetPoint_Traj_Node(Node):
             self.dist_3 = math.sqrt((self.X_car - self.previous_X3_car)**2 + (self.Y_car - self.previous_Y3_car)**2)
             self.dist_4 = math.sqrt((self.X_car - self.previous_X4_car)**2 + (self.Y_car - self.previous_Y4_car)**2)
 
-            
-
-
-            
-
-
-
-
-
 
             # err_x=x_des-self.drone_curr_x
             # err_y=y_des-self.drone_curr_y
@@ -166,13 +213,18 @@ class SetPoint_Traj_Node(Node):
 
 
             # print(f"Going to {x_des} {y_des} {z_des}")
-            
+            self.data_x=self.x_des
+            self.data_y=self.y_des
+            self.data_z=self.z_des
+            self.obstacle_avoidance()
+
+
             if self.timestamp is not None:
                 try_point = TrajectorySetpoint()
                 try_point.timestamp = self.timestamp
-                try_point.x =  x_des
-                try_point.y = y_des
-                try_point.z = -z_des
+                try_point.x =  self.data_x
+                try_point.y = self.data_y
+                try_point.z = -self.data_z
                 try_point.yaw = self.yaw_des
             
 
@@ -233,6 +285,7 @@ class SetPoint_Traj_Node(Node):
             self.z_drone = -msg.z
             self.drone_yaw = msg.heading
             print("Calling Odom callback, this is heading")
+            self.drone_orientation_callback(msg)
             print(msg.heading)
             # self.get_logger().info('got current coords'+"\n"+str(msg))
 
@@ -277,7 +330,7 @@ class SetPoint_Traj_Node(Node):
             self.Z_car = - msg.position.z
     
     # DISTANCE TO COLLISION
-    '''
+    
     def transform(self):
         k_int = np.array([[465.60148469763925,0,320.5],
                               [0,465.60148469763925,240.5],
@@ -304,17 +357,17 @@ class SetPoint_Traj_Node(Node):
             X = np.matmul(transform_camera_to_drone,X)
             depth = X[2]
             self.dist_to_collision = depth  
-    def drone_odom_callback(self, msg):
-        if msg.xy_valid and msg.z_valid:
-            self.dronex = msg.y
-            self.droney = msg.x
-            self.dronez = -msg.z
+    # def drone_odom_callback(self, msg):
+    #     if msg.xy_valid and msg.z_valid:
+    #         self.dronex = msg.y
+    #         self.droney = msg.x
+    #         self.dronez = -msg.z
             
     def drone_orientation_callback(self, msg):
-        self.orientationw = msg.q[0]
-        self.orientationx = msg.q[1]
-        self.orientationy = msg.q[2]
-        self.orientationz = msg.q[3]
+        self.orientationx = msg.heading.x
+        self.orientationw = msg.heading.w
+        self.orientationy = msg.heading.y
+        self.orientationz = msg.heading.z
 
     def trajectory_callback(self,data):
         msg = TrajectorySetpoint()
@@ -322,7 +375,7 @@ class SetPoint_Traj_Node(Node):
         self.coord3dy = data.x
         self.coord3dz = -data.z
         self.transform()
-    '''
+    
 
 def main(args=None):
     rclpy.init(args=args)
